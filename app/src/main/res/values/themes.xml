@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <style name="Theme.AndroidERestaurant" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.AndroidERestaurant.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+    <style name="Theme.AndroidERestaurant.AppBarOverlay"
+        parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.AndroidERestaurant.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>
