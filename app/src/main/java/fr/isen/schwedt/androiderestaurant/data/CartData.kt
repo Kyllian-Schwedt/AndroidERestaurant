@@ -15,8 +15,9 @@ class CartData private constructor() {
 
     fun persiste(context: Context) {
         val jsonString = Gson().toJson(items)
+        val encryptedData = CryptoUtils.encrypt(jsonString)
         context.openFileOutput("CartData.json", Context.MODE_PRIVATE).use {
-            it.write(jsonString.toByteArray())
+            it.write(encryptedData.toByteArray())
         }
     }
 
@@ -32,8 +33,9 @@ class CartData private constructor() {
 
         private fun loadFromFile(context: Context) {
             items = try {
-                val jsonString = context.openFileInput("CartData.json").bufferedReader().use { it.readText() }
-                fromJson(jsonString)
+                val encryptedData = context.openFileInput("CartData.json").bufferedReader().use { it.readText() }
+                val decryptedData = CryptoUtils.decrypt(encryptedData)
+                fromJson(decryptedData)
             } catch (e: FileNotFoundException) {
                 mutableListOf()
             }
