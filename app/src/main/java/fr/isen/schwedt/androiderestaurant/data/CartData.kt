@@ -1,8 +1,9 @@
 package fr.isen.schwedt.androiderestaurant.data
 
 import android.content.Context
-import android.util.Log
-import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import fr.isen.schwedt.androiderestaurant.dto.Item
@@ -23,7 +24,7 @@ class CartData private constructor() {
 
     companion object {
         private var isInitialized = false
-        var items: MutableList<ItemCart> = mutableListOf()
+        var items: SnapshotStateList<ItemCart> = SnapshotStateList()
         private var callbacks: MutableList<() -> Unit> = mutableListOf()
 
         private fun fromJson(json: String): MutableList<ItemCart> {
@@ -32,13 +33,16 @@ class CartData private constructor() {
         }
 
         private fun loadFromFile(context: Context) {
-            items = try {
+            val loadedItems = try {
                 val encryptedData = context.openFileInput("CartData.json").bufferedReader().use { it.readText() }
                 val decryptedData = CryptoUtils.decrypt(encryptedData)
                 fromJson(decryptedData)
             } catch (e: FileNotFoundException) {
                 mutableListOf()
             }
+            items = SnapshotStateList()
+            items.addAll(loadedItems)
+            isInitialized = true
             isInitialized = true
         }
 
@@ -49,6 +53,18 @@ class CartData private constructor() {
                 loadFromFile(context)
                 CartData()
             }
+        }
+
+        fun updateItemCount(item: Item, context: Context) {
+            val existingItem = items.find { it.item.id == item.id }
+
+            if (existingItem != null) {
+                callbacks.forEach { it.invoke() }
+                getCart(context).persiste(context)
+            }
+
+            callbacks.forEach { it.invoke() }
+            getCart(context).persiste(context)
         }
 
         fun getCartCount(context: Context): Int {
@@ -66,7 +82,7 @@ class CartData private constructor() {
                     existingItem.count[i] = existingItem.count.getOrDefault(i, 0) + map[i]
                 }
             } else {
-                val itemCart = ItemCart(item, HashMap())
+                val itemCart = ItemCart(item, SnapshotStateMap())
                 for (i in map.indices) {
                     itemCart.count[i] = map[i]
                 }
@@ -81,12 +97,23 @@ class CartData private constructor() {
             callbacks.forEach { it.invoke() }
         }
 
+        @Deprecated("Use State of the list instead")
         fun addCallback(callback: () -> Unit) {
             callbacks.add(callback)
         }
 
+        @Deprecated("Use State of the list instead")
         fun removeCallback(callback: () -> Unit) {
             callbacks.remove(callback)
+        }
+
+        fun removeItemFromCart(item: Item, activity: Context) {
+            val existingItem = items.find { it.item.id == item.id }
+            if (existingItem != null) {
+                items.remove(existingItem)
+            }
+            updateCart()
+            getCart(activity).persiste(activity)
         }
     }
 }

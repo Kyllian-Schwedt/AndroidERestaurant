@@ -2,8 +2,6 @@ package fr.isen.schwedt.androiderestaurant.page
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,18 +16,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +31,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,21 +44,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import com.google.gson.Gson
 import fr.isen.schwedt.androiderestaurant.R
 import fr.isen.schwedt.androiderestaurant.compose.CustomTopBar
 import fr.isen.schwedt.androiderestaurant.data.CartData
-import fr.isen.schwedt.androiderestaurant.dto.Item
+import fr.isen.schwedt.androiderestaurant.data.CartData.Companion.items
 import fr.isen.schwedt.androiderestaurant.dto.ItemCart
-import fr.isen.schwedt.androiderestaurant.lib.ContentTypes
-import fr.isen.schwedt.androiderestaurant.services.WebService
 import fr.isen.schwedt.androiderestaurant.ui.theme.AndroidERestaurantTheme
 
 class CartActivity : ComponentActivity() {
@@ -77,7 +67,7 @@ class CartActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CartList(activity = this, items = CartData.items)
+                    CartList(activity = this)
                 }
             }
         }
@@ -86,13 +76,23 @@ class CartActivity : ComponentActivity() {
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun CartList(activity: Activity, items: MutableList<ItemCart>, modifier: Modifier = Modifier) {
+fun CartList(activity: Activity, modifier: Modifier = Modifier) {
     var isRefreshing by remember { mutableStateOf(false) }
-    var total by remember { mutableDoubleStateOf(calculateTotal(items)) }
+    var total by remember { mutableDoubleStateOf(calculateTotal(CartData.items)) }
+
+    val totalItemCount by remember {
+        derivedStateOf {
+            CartData.items.sumOf { it.count.values.sum() }
+        }
+    }
+
+    LaunchedEffect(totalItemCount) {
+        total = calculateTotal(CartData.items)
+    }
+
     SwipeRefresh(
         state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
         onRefresh = {
-            // Implement your refresh logic here
             isRefreshing = false
         },
         content = {
@@ -113,7 +113,7 @@ fun CartList(activity: Activity, items: MutableList<ItemCart>, modifier: Modifie
                                 ItemCartComposable(item, activity, onClick = {
                                     Log.d("CartActivity", "Item clicked: ${item.item.name_fr}")
                                 }, upDateTotal = {
-                                    total = calculateTotal(items)
+
                                 })
                             }
                         }
@@ -149,7 +149,12 @@ private fun calculateTotal(items: List<ItemCart>): Double {
 }
 
 @Composable
-fun ItemCartComposable(item: ItemCart, activity: Activity, onClick: () -> Unit, upDateTotal: () -> Unit) {
+fun ItemCartComposable(
+    item: ItemCart,
+    activity: Activity,
+    onClick: () -> Unit,
+    upDateTotal: () -> Unit
+) {
     var imageIndex by remember { mutableIntStateOf(0) }
     Card(
         onClick = onClick,
@@ -218,7 +223,6 @@ fun ItemCartComposable(item: ItemCart, activity: Activity, onClick: () -> Unit, 
                         horizontalArrangement = Arrangement.Absolute.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Price
                         Text(
                             text = "Price: ${price.price}",
                             style = MaterialTheme.typography.bodyLarge,
@@ -234,8 +238,8 @@ fun ItemCartComposable(item: ItemCart, activity: Activity, onClick: () -> Unit, 
                                 if (priceCounts[index].intValue > 0) {
                                     priceCounts[index].intValue--
                                     item.count[index] = priceCounts[index].intValue // Update the item count map
+                                    CartData.updateItemCount(item.item, activity)
                                     upDateTotal() // Call the function to update the total
-                                    CartData.updateCart()
                                 }
                             }) {
                                 Text(text = "-")
@@ -247,9 +251,9 @@ fun ItemCartComposable(item: ItemCart, activity: Activity, onClick: () -> Unit, 
                             // Increase button
                             Button(onClick = {
                                 priceCounts[index].intValue++
-                                item.count[index] = priceCounts[index].intValue // Update the item count map
-                                upDateTotal() // Call the function to update the total
-                                CartData.updateCart()
+                                item.count[index] = priceCounts[index].intValue
+                                CartData.updateItemCount(item.item, activity)
+                                upDateTotal()
                             }) {
                                 Text(text = "+")
                             }
@@ -257,9 +261,8 @@ fun ItemCartComposable(item: ItemCart, activity: Activity, onClick: () -> Unit, 
                     }
                 }
                 IconButton(onClick = {
-                    CartData.items.remove(item)
+                    CartData.removeItemFromCart(item.item, activity)
                     upDateTotal()
-                    CartData.updateCart()
                 }) {
                     Icon(Icons.Filled.Delete, contentDescription = "Remove item")
                 }

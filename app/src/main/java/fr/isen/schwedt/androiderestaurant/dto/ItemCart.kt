@@ -1,6 +1,8 @@
 package fr.isen.schwedt.androiderestaurant.dto
 
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+
 data class ItemCart(
     val item: Item,
-    var count: HashMap<Int, Int>
+    var count: SnapshotStateMap<Int, Int>
 )

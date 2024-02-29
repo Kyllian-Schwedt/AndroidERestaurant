@@ -68,7 +68,7 @@ class ItemDetailActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val item = getItemFromIntent()
-                    ItemDetails(item = item, activity = this, hasValidUnsplashKey = true)
+                    ItemDetails(item = item, activity = this)
                 }
             }
         }
@@ -86,9 +86,7 @@ class ItemDetailActivity : ComponentActivity() {
 @Composable
 fun ItemDetails(
     item: Item,
-    activity: ItemDetailActivity,
-    hasValidUnsplashKey: Boolean,
-    modifier: Modifier = Modifier
+    activity: ItemDetailActivity
 ) {
     Scaffold(
         topBar = {
@@ -319,8 +317,7 @@ fun DefaultPreview() {
     AndroidERestaurantTheme {
         ItemDetails(
             item = dummyItem,
-            activity = ItemDetailActivity(),
-            hasValidUnsplashKey = true
+            activity = ItemDetailActivity()
         )
     }
 }
