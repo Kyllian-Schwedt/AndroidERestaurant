@@ -57,14 +57,26 @@ class CartData private constructor() {
         }
 
         fun addItemToCart(item: Item, map: List<Int>, context: Context) {
-            val itemCart = ItemCart(item, HashMap())
-            for (i in map.indices) {
-                itemCart.count[i] = map[i]
+            val existingItem = items.find { it.item.id == item.id }
+
+            if (existingItem != null) {
+                for (i in map.indices) {
+                    existingItem.count[i] = existingItem.count.getOrDefault(i, 0) + map[i]
+                }
+            } else {
+                val itemCart = ItemCart(item, HashMap())
+                for (i in map.indices) {
+                    itemCart.count[i] = map[i]
+                }
+                items.add(itemCart)
             }
-            items.add(itemCart)
 
             callbacks.forEach { it.invoke() }
             getCart(context).persiste(context)
+        }
+
+        fun updateCart() {
+            callbacks.forEach { it.invoke() }
         }
 
         fun addCallback(callback: () -> Unit) {

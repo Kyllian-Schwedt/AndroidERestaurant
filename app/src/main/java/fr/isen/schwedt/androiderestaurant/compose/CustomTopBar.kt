@@ -2,6 +2,7 @@ package fr.isen.schwedt.androiderestaurant.compose
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import fr.isen.schwedt.androiderestaurant.data.CartData
+import fr.isen.schwedt.androiderestaurant.page.CartActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +44,8 @@ fun CustomTopBar(
     navController: NavController? = null,
     returnBack: Boolean = false,
     title: String = "AndroidRestaurant",
-    displayTitle: Boolean
+    displayTitle: Boolean,
+    openCart: Boolean = true
 ) {
 
     val itemCount = remember { mutableIntStateOf(CartData.getCartCount(activity)) }
@@ -64,7 +67,7 @@ fun CustomTopBar(
             if (returnBack) {
                 IconButton(onClick = {
                     // Handle the back button
-                    activity?.finish()
+                    activity.finish()
                     navController?.popBackStack()
                 }) {
                     Icon(
@@ -76,7 +79,12 @@ fun CustomTopBar(
         },
         actions = {
             IconButton(
-                onClick = { /* do something */ },
+                onClick = {
+                    if (openCart) {
+                        val intent = Intent(activity, CartActivity::class.java)
+                        activity.startActivity(intent)
+                    }
+                },
                 modifier = Modifier
                     .background(Color.Transparent)
                     .clip(CircleShape)
